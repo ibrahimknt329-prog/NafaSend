@@ -153,12 +153,7 @@ export default function LoginPage() {
         
         {/* Logo et titre */}
         <div className="text-center mb-8">
-          <Image 
-                  src="/mon-logo.png" 
-                   alt="NafaSend Logo" 
-                    width={85} 
-                     height={85}
-                     className="rounded-full border-2 border-white object-cover" />
+          <div className="text-5xl mb-3">🚚</div>
           <h1 className="text-3xl font-bold text-gray-900">NafaSend</h1>
           <p className="text-gray-600 mt-2">
             {mode === "login" ? "Connectez-vous à votre compte" : "Créez votre compte"}

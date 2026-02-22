@@ -112,7 +112,7 @@ export default function Home() {
               <div className="text-gray-600 font-semibold">Couverture nationale</div>
             </div>
             <div>
-              <div className="text-4xl md:text-5xl font-bold text-blue-600 mb-2">24-48h</div>
+              <div className="text-4xl md:text-5xl font-bold text-blue-600 mb-2">24-72h</div>
               <div className="text-gray-600 font-semibold">Délai de livraison</div>
             </div>
             <div>
@@ -202,7 +202,7 @@ export default function Home() {
                     <p>1️⃣ Remplissez le formulaire en ligne</p>
                     <p>2️⃣ Déposez votre colis en agence</p>
                     <p>3️⃣ Suivez votre envoi en temps réel</p>
-                    <p>4️⃣ Votre colis est livré en 24-48h</p>
+                    <p>4️⃣ Votre colis est livré en 24-72h</p>
                   </div>
                 </div>
               </div>
@@ -329,7 +329,7 @@ export default function Home() {
                 num: "04",
                 icon: "✅",
                 title: "Livraison sécurisée",
-                desc: "Le destinataire reçoit son colis en 24-48h"
+                desc: "Le destinataire reçoit son colis en 24-72h"
               }
             ].map((step, index) => (
               <div key={index} className="relative">
