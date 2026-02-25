@@ -99,6 +99,12 @@ export default function NavbarWithLogo() {
           >
             Suivi
           </Link>
+          <Link
+            href="/contact"
+            className={`font-semibold transition-colors hover:text-blue-500 ${
+            isActive("/contact") ? "text-blue-500" : "text-gray-700"}`}>
+            Contact
+          </Link>
         </div>
 
         {/* USER SECTION */}
@@ -324,6 +330,16 @@ export default function NavbarWithLogo() {
                   }`}
                 >
                   👑 Administration
+                </Link>
+                <Link
+                  href="/contact"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block py-3 px-4 rounded-lg font-semibold transition ${
+                   isActive("/contact")
+                    ? "bg-blue-50 text-blue-500"
+                    : "text-gray-700 hover:bg-gray-100"
+                    }`}>
+                    📞 Contact
                 </Link>
               </>
             )}
