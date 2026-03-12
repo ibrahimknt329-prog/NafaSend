@@ -105,6 +105,15 @@ export default function NavbarWithLogo() {
             isActive("/contact") ? "text-blue-500" : "text-gray-700"}`}>
             Contact
           </Link>
+          <Link
+            href="/fidelite"
+            className={`font-semibold transition-colors hover:text-blue-500 flex items-center gap-1 ${
+              isActive("/fidelite") ? "text-blue-500" : "text-gray-700"
+            }`}
+          >
+            <span>Fidélité</span>
+            <span>🎁</span>
+          </Link>
         </div>
 
         {/* USER SECTION */}
@@ -172,6 +181,18 @@ export default function NavbarWithLogo() {
                       <div>
                         <div className="font-semibold text-sm">Mon Dashboard</div>
                         <div className="text-xs text-gray-500">Voir mes commandes</div>
+                      </div>
+                    </Link>
+
+                    <Link
+                      href="/fidelite"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-green-50 text-gray-700 hover:text-green-600 transition"
+                    >
+                      <span className="text-xl">🎁</span>
+                      <div>
+                        <div className="font-semibold text-sm">Fidélité</div>
+                        <div className="text-xs text-gray-500">Mes points et récompenses</div>
                       </div>
                     </Link>
 
@@ -306,6 +327,28 @@ export default function NavbarWithLogo() {
             >
               📍 Suivi
             </Link>
+            <Link
+              href="/contact"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block py-3 px-4 rounded-lg font-semibold transition ${
+                isActive("/contact")
+                  ? "bg-blue-50 text-blue-500"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              📞 Contact
+            </Link>
+            <Link
+              href="/fidelite"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block py-3 px-4 rounded-lg font-semibold transition ${
+                isActive("/fidelite")
+                  ? "bg-green-50 text-green-500"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              🎁 Fidélité
+            </Link>
             
             {user && (
               <>
@@ -330,16 +373,6 @@ export default function NavbarWithLogo() {
                   }`}
                 >
                   👑 Administration
-                </Link>
-                <Link
-                  href="/contact"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`block py-3 px-4 rounded-lg font-semibold transition ${
-                   isActive("/contact")
-                    ? "bg-blue-50 text-blue-500"
-                    : "text-gray-700 hover:bg-gray-100"
-                    }`}>
-                    📞 Contact
                 </Link>
               </>
             )}

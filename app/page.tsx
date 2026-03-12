@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { showError, showSuccess } from '@/lib/toast-utils';
 
 export default function Home() {
   const [isVisible, setIsVisible] = useState(false);
@@ -19,13 +20,13 @@ export default function Home() {
 
   const calculerPrix = () => {
     if (!poids) {
-      alert("Veuillez entrer le poids");
+      showError("Veuillez entrer le poids");
       return;
     }
     const poidsNum = parseFloat(poids);
     const prix = 50000 + (poidsNum * 8000);
     setPrixCalcule(prix);
-    alert(`Prix estimé: ${prix.toLocaleString('fr-FR')} GNF`);
+    showSuccess(`Prix estimé: ${prix.toLocaleString('fr-FR')} GNF`);
   };
 
   return (

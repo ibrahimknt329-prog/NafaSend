@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import MobileMoneyPayment from "@/components/ui/MobileMoneyPayment";
+import { commandeSchema } from '@/lib/validations';
+import { z } from 'zod';
+import { showError, showSuccess } from '@/lib/toast-utils';
 
 export default function EnvoyerWithPayment() {
   const [formData, setFormData] = useState({
@@ -36,7 +39,7 @@ export default function EnvoyerWithPayment() {
   const [error, setError] = useState("");
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [methodePaiement, setMethodePaiement] = useState<"online" | "delivery" | null>(null);
-
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   // Calcul du prix
   const calculerPrix = () => {
     const poidsNum = parseFloat(formData.poids) || 0;
@@ -88,13 +91,56 @@ export default function EnvoyerWithPayment() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  // ✅ VALIDATION AVEC ZOD
+  try {
+    // Valider les données
+    commandeSchema.parse({
+      expediteurNom: formData.expediteurNom,
+      expediteurTel: formData.expediteurTel,
+      expediteurVille: formData.expediteurVille,
+      expediteurAdresse: formData.expediteurAdresse || undefined,
+      destinataireNom: formData.destinataireNom,
+      destinataireTel: formData.destinataireTel,
+      destinataireVille: formData.destinataireVille,
+      destinataireAdresse: formData.destinataireAdresse || undefined,
+      poids: formData.poids,
+      longueur: formData.longueur || undefined,
+      largeur: formData.largeur || undefined,
+      hauteur: formData.hauteur || undefined,
+      typeService: formData.typeService,
+      paiementLivraison: formData.paiementLivraison,
+      montantCOD: formData.montantCOD || undefined,
+    });
+    
+    // Si validation OK, continuer
+    setValidationErrors({});
     const prixFinal = calculerPrix();
     const numero = genererNumeroSuivi();
     setNumeroSuivi(numero);
     setShowRecap(true);
-  };
-
+    
+  } catch (err) {
+    // Si erreur de validation
+    if (err instanceof z.ZodError) {
+      // Créer un objet des erreurs
+      const errors: Record<string, string> = {};
+      err.issues.forEach((e) => {
+        const path = e.path[0] as string;
+        errors[path] = e.message;
+      });
+      setValidationErrors(errors);
+      
+      // Afficher la première erreur
+      const firstError = err.issues[0];
+      showError(firstError.message); // Temporaire (sera remplacé par toast)
+      
+      // Scroll vers le haut pour voir les erreurs
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+};
   const handleChoixPaiement = (methode: "online" | "delivery") => {
     setMethodePaiement(methode);
     
@@ -149,7 +195,7 @@ export default function EnvoyerWithPayment() {
       } else {
         setShowRecap(false);
         setShowPayment(false);
-        alert(`✅ Commande créée !\n\nNuméro de suivi : ${numeroSuivi}\n\nPaiement à effectuer à la livraison : ${prix.toLocaleString('fr-FR')} GNF`);
+        showSuccess(`✅ Commande créée !\n\nNuméro de suivi : ${numeroSuivi}\n\nPaiement à effectuer à la livraison : ${prix.toLocaleString('fr-FR')} GNF`);
         
         // Réinitialiser
         setFormData({
@@ -382,152 +428,493 @@ export default function EnvoyerWithPayment() {
           Remplissez le formulaire pour créer votre envoi
         </p>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-8 space-y-8">
-          
-          {/* EXPÉDITEUR */}
-          <div>
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-              📤 Expéditeur
-            </h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                name="expediteurNom"
-                value={formData.expediteurNom}
-                onChange={handleChange}
-                placeholder="Nom complet"
-                className="border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
-                required
-              />
-              <input
-                type="tel"
-                name="expediteurTel"
-                value={formData.expediteurTel}
-                onChange={handleChange}
-                placeholder="Téléphone"
-                className="border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
-                required
-              />
-              <input
-                type="text"
-                name="expediteurVille"
-                value={formData.expediteurVille}
-                onChange={handleChange}
-                placeholder="Ville"
-                className="border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
-                required
-              />
-              <input
-                type="text"
-                name="expediteurAdresse"
-                value={formData.expediteurAdresse}
-                onChange={handleChange}
-                placeholder="Adresse complète"
-                className="border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
-                required
-              />
-            </div>
+        // app/envoyer/page.tsx
+// SECTION DU FORMULAIRE AVEC VALIDATION VISUELLE COMPLÈTE
+
+{/* ========================================
+    FORMULAIRE PRINCIPAL
+======================================== */}
+
+<form onSubmit={handleSubmit} className="max-w-5xl mx-auto space-y-8">
+
+  {/* ========================================
+      SECTION 1 : INFORMATIONS EXPÉDITEUR
+  ======================================== */}
+  <div className="bg-white rounded-2xl shadow-lg p-8">
+    <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+      <span>📤</span>
+      <span>Informations de l'expéditeur</span>
+    </h2>
+
+    <div className="grid md:grid-cols-2 gap-6">
+      
+      {/* NOM EXPÉDITEUR */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Nom complet <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          name="expediteurNom"
+          value={formData.expediteurNom}
+          onChange={handleChange}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none transition ${
+            validationErrors.expediteurNom 
+              ? 'border-red-500 bg-red-50 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+              : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+          }`}
+          placeholder="Ex: Mohamed Camara"
+        />
+        {validationErrors.expediteurNom && (
+          <p className="text-red-500 text-sm mt-1 flex items-center gap-1 animate-fade-in">
+            <span>⚠️</span>
+            <span>{validationErrors.expediteurNom}</span>
+          </p>
+        )}
+      </div>
+
+      {/* TÉLÉPHONE EXPÉDITEUR */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Téléphone <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="tel"
+          name="expediteurTel"
+          value={formData.expediteurTel}
+          onChange={handleChange}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none transition ${
+            validationErrors.expediteurTel 
+              ? 'border-red-500 bg-red-50 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+              : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+          }`}
+          placeholder="Ex: +224 622 123 456"
+        />
+        {validationErrors.expediteurTel && (
+          <p className="text-red-500 text-sm mt-1 flex items-center gap-1 animate-fade-in">
+            <span>⚠️</span>
+            <span>{validationErrors.expediteurTel}</span>
+          </p>
+        )}
+      </div>
+
+      {/* VILLE EXPÉDITEUR */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Ville <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          name="expediteurVille"
+          value={formData.expediteurVille}
+          onChange={handleChange}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none transition ${
+            validationErrors.expediteurVille 
+              ? 'border-red-500 bg-red-50 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+              : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+          }`}
+          placeholder="Ex: Conakry"
+        />
+        {validationErrors.expediteurVille && (
+          <p className="text-red-500 text-sm mt-1 flex items-center gap-1 animate-fade-in">
+            <span>⚠️</span>
+            <span>{validationErrors.expediteurVille}</span>
+          </p>
+        )}
+      </div>
+
+      {/* ADRESSE EXPÉDITEUR (Optionnel) */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Adresse complète (optionnel)
+        </label>
+        <input
+          type="text"
+          name="expediteurAdresse"
+          value={formData.expediteurAdresse}
+          onChange={handleChange}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+          placeholder="Ex: Quartier Madina, près de..."
+        />
+      </div>
+
+    </div>
+  </div>
+
+  {/* ========================================
+      SECTION 2 : INFORMATIONS DESTINATAIRE
+  ======================================== */}
+  <div className="bg-white rounded-2xl shadow-lg p-8">
+    <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+      <span>📥</span>
+      <span>Informations du destinataire</span>
+    </h2>
+
+    <div className="grid md:grid-cols-2 gap-6">
+      
+      {/* NOM DESTINATAIRE */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Nom complet <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          name="destinataireNom"
+          value={formData.destinataireNom}
+          onChange={handleChange}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none transition ${
+            validationErrors.destinataireNom 
+              ? 'border-red-500 bg-red-50 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+              : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+          }`}
+          placeholder="Ex: Aissatou Diallo"
+        />
+        {validationErrors.destinataireNom && (
+          <p className="text-red-500 text-sm mt-1 flex items-center gap-1 animate-fade-in">
+            <span>⚠️</span>
+            <span>{validationErrors.destinataireNom}</span>
+          </p>
+        )}
+      </div>
+
+      {/* TÉLÉPHONE DESTINATAIRE */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Téléphone <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="tel"
+          name="destinataireTel"
+          value={formData.destinataireTel}
+          onChange={handleChange}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none transition ${
+            validationErrors.destinataireTel 
+              ? 'border-red-500 bg-red-50 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+              : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+          }`}
+          placeholder="Ex: +224 655 987 654"
+        />
+        {validationErrors.destinataireTel && (
+          <p className="text-red-500 text-sm mt-1 flex items-center gap-1 animate-fade-in">
+            <span>⚠️</span>
+            <span>{validationErrors.destinataireTel}</span>
+          </p>
+        )}
+      </div>
+
+      {/* VILLE DESTINATAIRE */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Ville <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          name="destinataireVille"
+          value={formData.destinataireVille}
+          onChange={handleChange}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none transition ${
+            validationErrors.destinataireVille 
+              ? 'border-red-500 bg-red-50 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+              : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+          }`}
+          placeholder="Ex: Kindia"
+        />
+        {validationErrors.destinataireVille && (
+          <p className="text-red-500 text-sm mt-1 flex items-center gap-1 animate-fade-in">
+            <span>⚠️</span>
+            <span>{validationErrors.destinataireVille}</span>
+          </p>
+        )}
+      </div>
+
+      {/* ADRESSE DESTINATAIRE (Optionnel) */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Adresse complète (optionnel)
+        </label>
+        <input
+          type="text"
+          name="destinataireAdresse"
+          value={formData.destinataireAdresse}
+          onChange={handleChange}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition"
+          placeholder="Ex: Centre-ville, face à..."
+        />
+      </div>
+
+    </div>
+  </div>
+
+  {/* ========================================
+      SECTION 3 : DÉTAILS DU COLIS
+  ======================================== */}
+  <div className="bg-white rounded-2xl shadow-lg p-8">
+    <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+      <span>📦</span>
+      <span>Détails du colis</span>
+    </h2>
+
+    <div className="grid md:grid-cols-2 gap-6">
+      
+      {/* POIDS */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Poids (kg) <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="number"
+          name="poids"
+          value={formData.poids}
+          onChange={handleChange}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none transition ${
+            validationErrors.poids 
+              ? 'border-red-500 bg-red-50 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+              : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+          }`}
+          placeholder="Ex: 5"
+          min="0.1"
+          max="100"
+          step="0.1"
+        />
+        {validationErrors.poids && (
+          <p className="text-red-500 text-sm mt-1 flex items-center gap-1 animate-fade-in">
+            <span>⚠️</span>
+            <span>{validationErrors.poids}</span>
+          </p>
+        )}
+        <p className="text-xs text-gray-500 mt-1">Maximum 100 kg</p>
+      </div>
+
+      {/* LONGUEUR (Optionnel) */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Longueur (cm) (optionnel)
+        </label>
+        <input
+          type="number"
+          name="longueur"
+          value={formData.longueur}
+          onChange={handleChange}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none transition ${
+            validationErrors.longueur 
+              ? 'border-red-500 bg-red-50 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+              : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+          }`}
+          placeholder="Ex: 50"
+          min="0"
+          max="200"
+        />
+        {validationErrors.longueur && (
+          <p className="text-red-500 text-sm mt-1 flex items-center gap-1 animate-fade-in">
+            <span>⚠️</span>
+            <span>{validationErrors.longueur}</span>
+          </p>
+        )}
+      </div>
+
+      {/* LARGEUR (Optionnel) */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Largeur (cm) (optionnel)
+        </label>
+        <input
+          type="number"
+          name="largeur"
+          value={formData.largeur}
+          onChange={handleChange}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none transition ${
+            validationErrors.largeur 
+              ? 'border-red-500 bg-red-50 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+              : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+          }`}
+          placeholder="Ex: 30"
+          min="0"
+          max="200"
+        />
+        {validationErrors.largeur && (
+          <p className="text-red-500 text-sm mt-1 flex items-center gap-1 animate-fade-in">
+            <span>⚠️</span>
+            <span>{validationErrors.largeur}</span>
+          </p>
+        )}
+      </div>
+
+      {/* HAUTEUR (Optionnel) */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Hauteur (cm) (optionnel)
+        </label>
+        <input
+          type="number"
+          name="hauteur"
+          value={formData.hauteur}
+          onChange={handleChange}
+          className={`w-full px-4 py-3 border rounded-lg focus:outline-none transition ${
+            validationErrors.hauteur 
+              ? 'border-red-500 bg-red-50 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+              : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+          }`}
+          placeholder="Ex: 20"
+          min="0"
+          max="200"
+        />
+        {validationErrors.hauteur && (
+          <p className="text-red-500 text-sm mt-1 flex items-center gap-1 animate-fade-in">
+            <span>⚠️</span>
+            <span>{validationErrors.hauteur}</span>
+          </p>
+        )}
+      </div>
+
+    </div>
+  </div>
+
+  {/* ========================================
+      SECTION 4 : TYPE DE SERVICE
+  ======================================== */}
+  <div className="bg-white rounded-2xl shadow-lg p-8">
+    <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+      <span>🚚</span>
+      <span>Type de service</span>
+    </h2>
+
+    <div className="grid md:grid-cols-2 gap-4">
+      
+      {/* SERVICE STANDARD */}
+      <button
+        type="button"
+        onClick={() => setFormData({ ...formData, typeService: 'standard' })}
+        className={`p-6 rounded-xl border-2 transition ${
+          formData.typeService === 'standard'
+            ? 'border-blue-500 bg-blue-50'
+            : 'border-gray-200 hover:border-gray-300'
+        }`}
+      >
+        <div className="text-4xl mb-2">📦</div>
+        <div className="font-bold text-lg">Standard</div>
+        <div className="text-sm text-gray-600">Livraison en 24-48h</div>
+        <div className="text-blue-600 font-bold mt-2">À partir de 50,000 GNF</div>
+      </button>
+
+      {/* SERVICE EXPRESS */}
+      <button
+        type="button"
+        onClick={() => setFormData({ ...formData, typeService: 'express' })}
+        className={`p-6 rounded-xl border-2 transition ${
+          formData.typeService === 'express'
+            ? 'border-orange-500 bg-orange-50'
+            : 'border-gray-200 hover:border-gray-300'
+        }`}
+      >
+        <div className="text-4xl mb-2">⚡</div>
+        <div className="font-bold text-lg">Express</div>
+        <div className="text-sm text-gray-600">Livraison en 24h</div>
+        <div className="text-orange-600 font-bold mt-2">À partir de 100,000 GNF</div>
+      </button>
+
+    </div>
+
+    {/* PAIEMENT À LA LIVRAISON */}
+    <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          name="paiementLivraison"
+          checked={formData.paiementLivraison}
+          onChange={handleChange}
+          className="mt-1 w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+        />
+        <div>
+          <div className="font-semibold text-gray-900">
+            Paiement à la livraison (COD)
           </div>
-
-          {/* DESTINATAIRE */}
-          <div>
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-              📥 Destinataire
-            </h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                name="destinataireNom"
-                value={formData.destinataireNom}
-                onChange={handleChange}
-                placeholder="Nom complet"
-                className="border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
-                required
-              />
-              <input
-                type="tel"
-                name="destinataireTel"
-                value={formData.destinataireTel}
-                onChange={handleChange}
-                placeholder="Téléphone"
-                className="border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
-                required
-              />
-              <input
-                type="text"
-                name="destinataireVille"
-                value={formData.destinataireVille}
-                onChange={handleChange}
-                placeholder="Ville"
-                className="border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none"
-                required
-              />
-              <input
-                type="text"
-                name="destinataireAdresse"
-                value={formData.destinataireAdresse}
-                onChange={handleChange}
-                placeholder="Adresse complète"
-                className="border-2 border-gray-300 rounded-lg px-4 py-3 focus:border-blue-500 focus:outline-none col-span-2"
-                required
-              />
-            </div>
+          <div className="text-sm text-gray-600">
+            Le destinataire paie le montant à la réception du colis
           </div>
+        </div>
+      </label>
 
-          {/* COLIS */}
-          <div>
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-              📦 Détails du colis
-            </h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">Poids (kg) *</label>
-                <input
-                  type="number"
-                  name="poids"
-                  value={formData.poids}
-                  onChange={handleChange}
-                  step="0.1"
-                  placeholder="Ex: 2.5"
-                  className="border-2 border-gray-300 rounded-lg px-4 py-3 w-full focus:border-blue-500 focus:outline-none"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm text-gray-600 mb-1 block">Type de service</label>
-                <select
-                  name="typeService"
-                  value={formData.typeService}
-                  onChange={handleChange}
-                  className="border-2 border-gray-300 rounded-lg px-4 py-3 w-full focus:border-blue-500 focus:outline-none"
-                >
-                  <option value="standard">Standard (2-3 jours)</option>
-                  <option value="express">Express (24h)</option>
-                </select>
-              </div>
-            </div>
+      {/* MONTANT COD (conditionnel) */}
+      {formData.paiementLivraison && (
+        <div className="mt-4 animate-fade-in">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Montant à collecter (GNF)
+          </label>
+          <input
+            type="number"
+            name="montantCOD"
+            value={formData.montantCOD}
+            onChange={handleChange}
+            className={`w-full px-4 py-3 border rounded-lg focus:outline-none transition ${
+              validationErrors.montantCOD 
+                ? 'border-red-500 bg-red-50 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+                : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+            }`}
+            placeholder="Ex: 150000"
+            min="0"
+          />
+          {validationErrors.montantCOD && (
+            <p className="text-red-500 text-sm mt-1 flex items-center gap-1 animate-fade-in">
+              <span>⚠️</span>
+              <span>{validationErrors.montantCOD}</span>
+            </p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">
+            Frais de COD : 2% du montant
+          </p>
+        </div>
+      )}
+    </div>
+  </div>
 
-            {prix > 0 && (
-              <div className="bg-blue-50 rounded-xl p-6 mt-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700 font-medium">Prix de la livraison :</span>
-                  <span className="text-3xl font-bold text-blue-600">
-                    {prix.toLocaleString('fr-FR')} GNF
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
+  {/* ========================================
+      SECTION 5 : RÉCAPITULATIF PRIX
+  ======================================== */}
+  {prix > 0 && (
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl shadow-lg p-8">
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">
+        💰 Prix estimé
+      </h2>
+      <div className="text-5xl font-bold text-blue-600">
+        {prix.toLocaleString('fr-FR')} <span className="text-2xl">GNF</span>
+      </div>
+      <p className="text-sm text-gray-600 mt-2">
+        Service {formData.typeService === 'express' ? 'Express ⚡' : 'Standard 📦'} · {formData.poids} kg
+      </p>
+    </div>
+  )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Enregistrement..." : "Continuer →"}
-          </button>
-        </form>
+  {/* ========================================
+      BOUTON DE SOUMISSION
+  ======================================== */}
+  <div className="flex gap-4">
+    <button
+      type="submit"
+      disabled={loading}
+      className={`flex-1 py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2 ${
+        loading
+          ? 'bg-gray-400 cursor-not-allowed text-gray-200'
+          : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
+      }`}
+    >
+      {loading ? (
+        <>
+          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+          </svg>
+          <span>Chargement...</span>
+        </>
+      ) : (
+        <>
+          <span>Continuer</span>
+          <span>→</span>
+        </>
+      )}
+    </button>
+  </div>
+
+</form>
       </div>
     </main>
   );

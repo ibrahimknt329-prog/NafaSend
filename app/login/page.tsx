@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { showError, showSuccess } from '@/lib/toast-utils';
 
 export default function LoginPage() {
   const router = useRouter();

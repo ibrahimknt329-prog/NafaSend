@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { showError, showSuccess } from '@/lib/toast-utils';
 
 export default function ContactPageImproved() {
   const [formData, setFormData] = useState({
@@ -123,7 +124,7 @@ export default function ContactPageImproved() {
     e.preventDefault();
 
     if (!validateForm()) {
-      alert("Veuillez corriger les erreurs avant d'envoyer");
+      showError("Veuillez corriger les erreurs avant d'envoyer");
       return;
     }
 

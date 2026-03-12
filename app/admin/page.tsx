@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { useAdmin } from '@/lib/useAdmin';
 
 interface Commande {
   id: number;
