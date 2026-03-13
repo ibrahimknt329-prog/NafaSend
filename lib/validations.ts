@@ -86,7 +86,7 @@ export const commandeSchema = z.object({
     .optional(),
 
   typeService: z.enum(['standard', 'express'], {
-    errorMap: () => ({ message: "Type de service invalide" }),
+    message: "Type de service invalide",
   }),
 
   paiementLivraison: z.boolean(),
